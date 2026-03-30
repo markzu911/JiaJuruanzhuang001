@@ -160,8 +160,22 @@ export default function App() {
 
     try {
       // Create a new GoogleGenAI instance right before making an API call
-      // @ts-ignore - process.env.API_KEY might be injected
-      const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+      // Try to get API key from various possible sources (AI Studio injection or Vercel env)
+      let apiKey = '';
+      try {
+        // @ts-ignore
+        apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+      } catch (e) {
+        // @ts-ignore
+        apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      }
+
+      if (!apiKey) {
+        toast.error('未检测到 API Key。请在 Vercel 环境变量中设置 VITE_GEMINI_API_KEY');
+        setIsGenerating(false);
+        return;
+      }
+
       const ai = new GoogleGenAI({ apiKey });
       
       const getBase64AndMimeType = (dataUrl: string) => {
@@ -352,9 +366,22 @@ CRITICAL SPATIAL INSTRUCTIONS:
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Generation error:', error);
-      toast.error('生成失败，请重试');
+      let errorMsg = '生成失败，请重试';
+      
+      if (error?.message?.includes('API_KEY_INVALID')) {
+        errorMsg = 'API Key 无效，请检查配置';
+      } else if (error?.message?.includes('User location is not supported')) {
+        errorMsg = '当前地区不支持 Gemini API，请尝试使用代理';
+      } else if (error?.message?.includes('quota')) {
+        errorMsg = 'API 配额已耗尽，请稍后再试';
+      } else if (error?.message) {
+        // Log more details if available
+        console.error('Detailed Error:', error.message);
+      }
+      
+      toast.error(errorMsg);
     } finally {
       setIsGenerating(false);
       setGenerationStep('');
