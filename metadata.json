@@ -1,0 +1,5 @@
+{
+  "name": "AI 家居软装摆场助手",
+  "description": "一款给家居软装店使用的 AI 工具，支持上传家具和房间图片，自动识别透视关系并按比例生成多角度真实摆放效果图。",
+  "requestFramePermissions": []
+}
